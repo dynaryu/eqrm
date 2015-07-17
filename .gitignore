@@ -13,3 +13,6 @@ eqrm_code/EQRM.log
 
 # ignore emacs backup files
 *~
+
+# ignore os x file
+*.DS_Store

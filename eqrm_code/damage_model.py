@@ -93,58 +93,83 @@ class Damage_model(object):
         beta_th_nsd_a = 0.6
         beta_bridge = 0.6
 
-        if (csm_use_variability is False):
-            # incorporate buiding cap variability into the beta
-            # (may not be correct!)
-            beta_sd = (
-                beta_th_sd ** 2 + csm_standard_deviation ** 2) ** (0.5)
-            beta_nsd_d = (
-                beta_th_nsd_d ** 2 + csm_standard_deviation ** 2) ** (0.5)
-            beta_nsd_a = (
-                beta_th_nsd_a ** 2 + csm_standard_deviation ** 2) ** (0.5)
-        elif (csm_use_variability is True):  # normal case:
-            beta_sd = beta_th_sd  # This does nothing
-            beta_nsd_d = beta_th_nsd_d
-            beta_nsd_a = beta_th_nsd_a
-  # warning: this option will cause divide by zero warnings in make_fragility.m
-        else:
-            msg = ('ERROR in prep_build_vun: '
-                   'csm_use_variability not properly defined')
-            raise RuntimeError(msg)
-
         (SA, SD) = self.get_building_displacement()
         SA = SA.round(4)
         SD = SD.round(4)
 
-        building_parameters = self.structures.building_parameters
-        threshold = building_parameters['structural_damage_threshold']
+        SA = SA[:, :, newaxis]
+        SD = SD[:, :, newaxis]
 
+        assert len(SA.shape) == 3
+        assert len(SD.shape) == 3
+
+        building_parameters = self.structures.building_parameters
+
+        threshold = building_parameters['structural_damage_threshold']
         # reshape threshold so it is [sites,magnitudes,damage_states]
         threshold = threshold[:, newaxis, :]
         assert len(threshold.shape) == 3
         # threshold is [sites,1,damage_states]
-        #
-        SA = SA[:, :, newaxis]
-        SD = SD[:, :, newaxis]
-        assert len(SA.shape) == 3
-        assert len(SD.shape) == 3
         structure_state = state_probability(threshold, beta_th_sd, SD)
-        # The above could be a typo.  Is this what we want?
-        # It will change scenario results.
-        # Is it beta_sd or beta_th_sd that we want?
 
         threshold = building_parameters['drift_threshold']
         threshold = threshold[:, newaxis, :]
+        assert len(threshold.shape) == 3
         non_structural_state = state_probability(threshold, beta_nsd_d, SD)
 
         threshold = building_parameters['acceleration_threshold']
         threshold = threshold[:, newaxis, :]
-        acceleration_sensitive_state = state_probability(threshold,
-                                                         beta_nsd_a, SA)
+        assert len(threshold.shape) == 3
+        if building_parameters['intercept'] is None:
+            acceleration_sensitive_state = state_probability(threshold,
+                beta_th_nsd_a, SA)
+        else:
+            abs_acc = estimate_absolute_acceleration(SD, SA)
+            acceleration_sensitive_state = state_probability(threshold,
+                beta_th_nsd_a, abs_acc)
+
         self.structure_state = structure_state  # for writing to file
 
         return (structure_state, non_structural_state,
                 acceleration_sensitive_state)
+
+    def estimate_absolute_acceleration(self, SD, SA):
+        """
+        estimate absolute acceleration from spectral displacement and
+        spectral acceleration of the capacity curve;
+
+        if SD < Dy: abs_acc = SA
+        else:
+            if SD < break_pt
+                abs_acc = exp(intercept+slope1*log(SD)) + SA 
+            else:
+                abs_acc = exp(intercept+slope1*log(break_pt) 
+                          + slope2*(log(SD)-break_pt)) + SA 
+
+        """
+
+        building_parameters = self.structures.building_parameters
+
+        intercept = building_parameters['intercept_NSA']
+        slope1 = building_parameters['slope1_NSA']
+        slope2 = building_parameters['slope2_NSA']
+        break_pt = building_parameters['break_pt_NSA']
+
+        (Dy,Ay,Du,Au,a,b,c) = self.capacity_spectrum_model.capacity_parameters
+        
+        abs_acc = np.zeros_like(SD)
+
+        tf = SD < Dy
+        abs_acc[tf] = SA[tf]
+
+        tf = (np.log(SD) < break_pt) & (SD >= Dy)
+        abs_acc[tf] = np.exp(intercept + slope1*np.log(SD[tf])) + SA[tf]
+
+        tf = np.log(SD) >= break_pt
+        abs_acc[tf] = np.exp(intercept + slope1*break_pt + \
+            slope2*(np.log(SD[tf])-break_pt)) + SA[tf]
+
+        return abs_acc
 
     def get_building_displacement(self):
         point = self.capacity_spectrum_model.building_response(self.SA)
