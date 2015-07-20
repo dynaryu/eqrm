@@ -115,16 +115,17 @@ class Damage_model(object):
         threshold = building_parameters['drift_threshold']
         threshold = threshold[:, newaxis, :]
         assert len(threshold.shape) == 3
-        non_structural_state = state_probability(threshold, beta_nsd_d, SD)
+        non_structural_state = state_probability(threshold, beta_th_nsd_d, SD)
 
         threshold = building_parameters['acceleration_threshold']
         threshold = threshold[:, newaxis, :]
         assert len(threshold.shape) == 3
-        if building_parameters['intercept'] is None:
+
+        if building_parameters['intercept_NSA'] is None:
             acceleration_sensitive_state = state_probability(threshold,
                 beta_th_nsd_a, SA)
         else:
-            abs_acc = estimate_absolute_acceleration(SD, SA)
+            abs_acc = self.estimate_absolute_acceleration(SD, SA)
             acceleration_sensitive_state = state_probability(threshold,
                 beta_th_nsd_a, abs_acc)
 
@@ -153,16 +154,14 @@ class Damage_model(object):
         intercept = building_parameters['intercept_NSA']
         slope1 = building_parameters['slope1_NSA']
         slope2 = building_parameters['slope2_NSA']
-        break_pt = building_parameters['break_pt_NSA']
+        break_pt = building_parameters['break_NSA']
 
-        (Dy,Ay,Du,Au,a,b,c) = self.capacity_spectrum_model.capacity_parameters
+        (Dy, Ay, Du, Au, a, b, c) = self.capacity_spectrum_model.\
+            capacity_parameters
         
         abs_acc = np.zeros_like(SD)
 
-        tf = SD < Dy
-        abs_acc[tf] = SA[tf]
-
-        tf = (np.log(SD) < break_pt) & (SD >= Dy)
+        tf = np.log(SD) < break_pt
         abs_acc[tf] = np.exp(intercept + slope1*np.log(SD[tf])) + SA[tf]
 
         tf = np.log(SD) >= break_pt

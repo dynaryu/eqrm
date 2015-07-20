@@ -26,6 +26,8 @@ platform = sys.platform
 from scipy import where, newaxis, array, isfinite, zeros, \
     arange, reshape, tile, ravel
 
+import numpy as np
+
 from eqrm_code.parse_in_parameters import  \
     AttributeSyntaxError, create_parameter_data, eqrm_flags_to_control_file
 from eqrm_code.event_set import create_event_set
@@ -83,6 +85,12 @@ def main(parameter_handle,
 
     eqrm_dir: The directory which 'eqrm_code' and 'resources' reside.
     """
+
+    flag_save = 1
+    pb_str_dump, pb_nsd_dump, pb_nsa_dump  = [], [], []
+    resp_d_dump, resp_a_dump = [], []
+    repl_cost_break_dump = []
+
     t0 = t0_clock = time.clock()
     t0_time = time.time()
 
@@ -473,6 +481,19 @@ def main(parameter_handle,
 
             assert isfinite(total_loss[0]).all()
 
+            thr_str = sites.building_parameters['structural_damage_threshold']
+            thr_nsd = sites.building_parameters['drift_threshold']
+            thr_nsa = sites.building_parameters['acceleration_threshold']
+            repl_cost_break = sites.cost_breakdown(1.0)
+            (pb_str, pb_nsd, pb_nsa)= damage.get_building_states()
+            (resp_a, resp_d) = damage.capacity_spectrum_model.building_response(SA)
+            resp_d_dump.append(resp_d)
+            resp_a_dump.append(resp_a)
+            pb_str_dump.append(pb_str)
+            pb_nsd_dump.append(pb_nsd)
+            pb_nsa_dump.append(pb_nsa)
+            repl_cost_break_dump.append(repl_cost_break)
+
             # It is called total building loss since it includes contents
             # break loss tuple into components
             # structure_loss = structural loss
@@ -547,6 +568,28 @@ def main(parameter_handle,
 
     # --------------------------------------------------------------
     # THIS IS THE END OF THE LOOP OVER SITES
+
+    if flag_save > 0:
+        file_name = eqrm_flags.output_dir + '/resp_d' + parallel.log_file_tag + '.npy'
+        np.save(file_name, array(resp_d_dump))
+
+        file_name = eqrm_flags.output_dir + '/resp_a' + parallel.log_file_tag + '.npy'
+        np.save(file_name, array(resp_a_dump))
+
+        file_name = eqrm_flags.output_dir + '/pb_str' + parallel.log_file_tag + '.npy'
+        np.save(file_name, array(pb_str_dump))
+
+        file_name = eqrm_flags.output_dir + '/pb_nsd' + parallel.log_file_tag + '.npy'
+        np.save(file_name, array(pb_nsd_dump))
+
+        file_name = eqrm_flags.output_dir + '/pb_nsa' + parallel.log_file_tag + '.npy'
+        np.save(file_name, array(pb_nsa_dump))
+
+        file_name = eqrm_flags.output_dir + '/thresholds' + parallel.log_file_tag + '.npy'
+        np.save(file_name, array([thr_str,thr_nsd,thr_nsa]))
+
+        file_name = eqrm_flags.output_dir + '/repl_break_down_' + parallel.log_file_tag + '.npy'
+        np.save(file_name, array(repl_cost_break_dump))
 
     log.debug('Memory: Ended looping over sites')
     log.resource_usage()
