@@ -93,12 +93,12 @@ class Damage_model(object):
         beta_th_nsd_a = 0.6
         beta_bridge = 0.6
 
-        (SA, SD) = self.get_building_displacement()
-        SA = SA.round(4)
-        SD = SD.round(4)
+        (point_SA, point_SD) = self.get_building_displacement()
+        point_SA = point_SA.round(4)
+        point_SD = point_SD.round(4)
 
-        SA = SA[:, :, newaxis]
-        SD = SD[:, :, newaxis]
+        point_SA = point_SA[:, :, newaxis]
+        point_SD = point_SD[:, :, newaxis]
 
         assert len(SA.shape) == 3
         assert len(SD.shape) == 3
@@ -110,22 +110,22 @@ class Damage_model(object):
         threshold = threshold[:, newaxis, :]
         assert len(threshold.shape) == 3
         # threshold is [sites,1,damage_states]
-        structure_state = state_probability(threshold, beta_th_sd, SD)
+        structure_state = state_probability(threshold, beta_th_sd, point_SD)
 
         threshold = building_parameters['drift_threshold']
         threshold = threshold[:, newaxis, :]
         assert len(threshold.shape) == 3
-        non_structural_state = state_probability(threshold, beta_th_nsd_d, SD)
+        non_structural_state = state_probability(threshold, beta_th_nsd_d, point_SD)
 
         threshold = building_parameters['acceleration_threshold']
         threshold = threshold[:, newaxis, :]
         assert len(threshold.shape) == 3
 
-        if building_parameters['intercept_NSA'] is None:
+        if building_parameters['intercept'] is None:
             acceleration_sensitive_state = state_probability(threshold,
-                beta_th_nsd_a, SA)
+                beta_th_nsd_a, point_SA)
         else:
-            abs_acc = self.estimate_absolute_acceleration(SD, SA)
+            abs_acc = self.estimate_absolute_acceleration(point_SD, point_SA)
             acceleration_sensitive_state = state_probability(threshold,
                 beta_th_nsd_a, abs_acc)
 
@@ -134,7 +134,7 @@ class Damage_model(object):
         return (structure_state, non_structural_state,
                 acceleration_sensitive_state)
 
-    def estimate_absolute_acceleration(self, SD, SA):
+    def estimate_absolute_acceleration(self, point_SD, point_SA):
         """
         estimate absolute acceleration from spectral displacement and
         spectral acceleration of the capacity curve;
@@ -149,24 +149,39 @@ class Damage_model(object):
 
         """
 
+        PGA = self.SA[:,:,0][:,:,np.newaxis] #[1, #events, #periods]
+
         building_parameters = self.structures.building_parameters
 
-        intercept = building_parameters['intercept_NSA']
-        slope1 = building_parameters['slope1_NSA']
-        slope2 = building_parameters['slope2_NSA']
-        break_pt = building_parameters['break_NSA']
+        intercept = building_parameters['intercept']
+
+        slope1_SD = building_parameters['slope1_SD']
+        slope2_SD = building_parameters['slope2_SD']
+        break_SD = building_parameters['break_SD']
+
+        slope1_PGA = building_parameters['slope1_PGA']
+        slope2_PGA = building_parameters['slope2_PGA']
+        break_PGA = building_parameters['break_PGA']
 
         (Dy, Ay, Du, Au, a, b, c) = self.capacity_spectrum_model.\
             capacity_parameters
         
-        abs_acc = np.zeros_like(SD)
+        abs_acc_SD = np.zeros_like(point_SD)
+        abs_acc_PGA = np.zeros_like(point_SD)
 
-        tf = np.log(SD) < break_pt
-        abs_acc[tf] = np.exp(intercept + slope1*np.log(SD[tf])) + SA[tf]
+        tf_SD = np.log(point_SD) < break_SD
+        abs_acc_SD[tf] = slope1_SD*np.log(point_SD[tf])
 
-        tf = np.log(SD) >= break_pt
-        abs_acc[tf] = np.exp(intercept + slope1*break_pt + \
-            slope2*(np.log(SD[tf])-break_pt)) + SA[tf]
+        tf_SD = np.log(point_SD) >= break_SD
+        abs_acc_SD[tf] = slope1_SD*break_SD + slope2_SD*(np.log(point_SD[tf])-break_SD)
+
+        tf_PGA = np.log(PGA) < break_PGA
+        abs_acc_PGA[tf] = slope1_PGA*np.log(PGA[tf])
+
+        tf_PGA = np.log(PGA) >= break_PGA
+        abs_acc_PGA[tf] = slope1_PGA*break_PGA + slope2_PGA*(np.log(PGA[tf])-break_PGA)
+
+        abs_acc = np.exp((intercept + abs_acc_SD + abs_acc_PGA)**2.0)*point_SA
 
         return abs_acc
 
