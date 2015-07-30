@@ -100,8 +100,8 @@ class Damage_model(object):
         point_SA = point_SA[:, :, newaxis]
         point_SD = point_SD[:, :, newaxis]
 
-        assert len(SA.shape) == 3
-        assert len(SD.shape) == 3
+        assert len(point_SA.shape) == 3
+        assert len(point_SD.shape) == 3
 
         building_parameters = self.structures.building_parameters
 
@@ -121,7 +121,7 @@ class Damage_model(object):
         threshold = threshold[:, newaxis, :]
         assert len(threshold.shape) == 3
 
-        if building_parameters['intercept'] is None:
+        if building_parameters['intercept'] < 0:
             acceleration_sensitive_state = state_probability(threshold,
                 beta_th_nsd_a, point_SA)
         else:
@@ -169,20 +169,22 @@ class Damage_model(object):
         abs_acc_SD = np.zeros_like(point_SD)
         abs_acc_PGA = np.zeros_like(point_SD)
 
-        tf_SD = np.log(point_SD) < break_SD
+        tf = np.log(point_SD) < break_SD
         abs_acc_SD[tf] = slope1_SD*np.log(point_SD[tf])
 
-        tf_SD = np.log(point_SD) >= break_SD
-        abs_acc_SD[tf] = slope1_SD*break_SD + slope2_SD*(np.log(point_SD[tf])-break_SD)
+        tf = np.log(point_SD) >= break_SD
+        abs_acc_SD[tf] = slope1_SD*break_SD + slope2_SD*(
+            np.log(point_SD[tf])-break_SD)
 
-        tf_PGA = np.log(PGA) < break_PGA
+        tf = np.log(PGA) < break_PGA
         abs_acc_PGA[tf] = slope1_PGA*np.log(PGA[tf])
 
-        tf_PGA = np.log(PGA) >= break_PGA
-        abs_acc_PGA[tf] = slope1_PGA*break_PGA + slope2_PGA*(np.log(PGA[tf])-break_PGA)
+        tf = np.log(PGA) >= break_PGA
+        abs_acc_PGA[tf] = slope1_PGA*break_PGA + slope2_PGA*(
+            np.log(PGA[tf])-break_PGA)
 
         abs_acc = np.exp((intercept + abs_acc_SD + abs_acc_PGA)**2.0)*point_SA
-
+        
         return abs_acc
 
     def get_building_displacement(self):

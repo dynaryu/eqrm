@@ -46,8 +46,8 @@ def building_params_from_csv(building_classification_tag,
                  'damping_s', 'damping_m', 'damping_l', 'damping_Be',
                  'structural_damage_slight', 'structural_damage_moderate',
                  'structural_damage_extreme', 'structural_damage_complete',
-                 'intercept_NSA', 'break_NSA', 'slope1_NSA', 'slope2_NSA',
-                 'factor_NSA']:
+                 'intercept', 'break_SD', 'slope1_SD', 'slope2_SD',
+                 'break_PGA', 'slope1_PGA', 'slope2_PGA']:
         attribute_conversions[name] = float
     fid = get_local_or_default(
         'building_parameters%s.csv' % building_classification_tag,
