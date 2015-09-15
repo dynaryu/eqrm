@@ -86,7 +86,7 @@ def main(parameter_handle,
     eqrm_dir: The directory which 'eqrm_code' and 'resources' reside.
     """
 
-    flag_save = 1
+    flag_save = 0
     pb_str_dump, pb_nsd_dump, pb_nsa_dump  = [], [], []
     resp_d_dump, resp_a_dump = [], []
     repl_cost_break_dump = []

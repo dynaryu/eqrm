@@ -138,16 +138,22 @@ class Damage_model(object):
         """
         estimate absolute acceleration from spectral displacement and
         spectral acceleration of the capacity curve;
-
-        if SD < Dy: abs_acc = SA
-        else:
-            if SD < break_pt
-                abs_acc = exp(intercept+slope1*log(SD)) + SA 
-            else:
-                abs_acc = exp(intercept+slope1*log(break_pt) 
-                          + slope2*(log(SD)-break_pt)) + SA 
-
         """
+
+        def compute_seg(x, break_pt, slope, dslope):
+            '''
+                y <- slope*log(x) if x < brk
+                y <- slope*xbk + (slope+dslope)*(log(x)-xbk) if x >= brk
+            '''
+            y = np.zeros_like(x)
+
+            tf = np.log(x) < break_pt
+            y[tf] = slope*np.log(x[tf])
+
+            tf = np.log(x) >= break_pt
+            y[tf] = slope*break_pt + (slope+dslope)*(np.log(x[tf])-break_pt)
+
+            return(y)
 
         PGA = self.SA[:,:,0][:,:,np.newaxis] #[1, #events, #periods]
 
@@ -155,33 +161,19 @@ class Damage_model(object):
 
         intercept = building_parameters['intercept']
 
-        slope1_SD = building_parameters['slope1_SD']
-        slope2_SD = building_parameters['slope2_SD']
+        slope_SD = building_parameters['slope_SD']
+        dslope_SD = building_parameters['dslope_SD']
         break_SD = building_parameters['break_SD']
 
-        slope1_PGA = building_parameters['slope1_PGA']
-        slope2_PGA = building_parameters['slope2_PGA']
+        slope_PGA = building_parameters['slope_PGA']
+        dslope_PGA = building_parameters['dslope_PGA']
         break_PGA = building_parameters['break_PGA']
 
         (Dy, Ay, Du, Au, a, b, c) = self.capacity_spectrum_model.\
             capacity_parameters
         
-        abs_acc_SD = np.zeros_like(point_SD)
-        abs_acc_PGA = np.zeros_like(point_SD)
-
-        tf = np.log(point_SD) < break_SD
-        abs_acc_SD[tf] = slope1_SD*np.log(point_SD[tf])
-
-        tf = np.log(point_SD) >= break_SD
-        abs_acc_SD[tf] = slope1_SD*break_SD + slope2_SD*(
-            np.log(point_SD[tf])-break_SD)
-
-        tf = np.log(PGA) < break_PGA
-        abs_acc_PGA[tf] = slope1_PGA*np.log(PGA[tf])
-
-        tf = np.log(PGA) >= break_PGA
-        abs_acc_PGA[tf] = slope1_PGA*break_PGA + slope2_PGA*(
-            np.log(PGA[tf])-break_PGA)
+        abs_acc_SD = compute_seg(point_SD, break_SD, slope_SD, dslope_SD)
+        abs_acc_PGA = compute_seg(PGA, break_PGA, slope_PGA, dslope_PGA)
 
         abs_acc = np.exp((intercept + abs_acc_SD + abs_acc_PGA)**2.0)*point_SA
         

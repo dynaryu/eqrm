@@ -1621,9 +1621,8 @@ def get_source_file_handle(eqrm_flags, source_file_type='zone'):
 
         filename = '%s%s%s.xml' % (eqrm_flags.site_tag, file_constant, source_tag)
         source_file = os.path.join(eqrm_flags.input_dir, filename)
-
         if not os.path.exists(source_file):
-            raise RuntimeError('Source file %s does not exist' % filename)
+            raise RuntimeError('Source file %s does not exist' % source_file)
 
         log.info('Using file %s for %s source' % (source_file, source_file_type))
 
