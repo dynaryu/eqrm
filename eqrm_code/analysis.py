@@ -647,7 +647,7 @@ def main(parameter_handle,
                                event_set=event_set,
                                compress=eqrm_flags.compress_output,
                                parallel_tag=parallel.file_tag)
-        column_files_that_parallel_splits.extend(files)
+        #column_files_that_parallel_splits.extend(files)
 
     # Save economic loss
     if ((eqrm_flags.save_total_financial_loss is True or
@@ -715,7 +715,7 @@ def main(parameter_handle,
                               '_building_value',
                               compress=eqrm_flags.compress_output,
                               parallel_tag=parallel.file_tag)
-            row_files_that_parallel_splits.append(a_file)
+            #row_files_that_parallel_splits.append(a_file)
 
     if eqrm_flags.save_contents_loss is True and parallel.lo != parallel.hi:
         new_contents_loss_qw = collapse_source_gmms(
@@ -763,6 +763,7 @@ def main(parameter_handle,
     # parallel code.  Needed if # of processes is > # of structures
     num_blocks = parallel.calc_num_blocks()
 
+    """	
     # Now process 0 can stitch some files together.
     if parallel.is_parallel and parallel.rank == 0:
         block_indices = parallel.calc_all_indices(num_sites)
@@ -780,6 +781,7 @@ def main(parameter_handle,
         join_parallel_data_files(data_files_that_parallel_splits,
                                  num_blocks,
                                  block_indices)
+    """
 
     # Let's stop all the programs at the same time
     # Needed when scenarios are in series.
