@@ -639,7 +639,7 @@ def main(parameter_handle,
 
     if ((eqrm_flags.save_motion is True or
          eqrm_flags.save_total_financial_loss is True or
-         eqrm_flags.save_building_loss is True or
+         #eqrm_flags.save_building_loss is True or
          eqrm_flags.save_contents_loss is True or
          eqrm_flags.save_prob_structural_damage is True) and
             parallel.lo != parallel.hi):
