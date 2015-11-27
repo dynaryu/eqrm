@@ -1218,7 +1218,7 @@ def save_ecloss(ecloss_name, eqrm_flags, ecloss, structures, compress=False,
     f.write('% First row is bid (building id) - subsequent rows are events\n')
     f.write(' '.join([str(bid) for bid in structures.attributes['BID']])
             + '\n')
-    if eqrm_flags.is_scenario is True
+    if eqrm_flags.is_scenario is True:
         for i in range(ecloss.shape[1]):  # for all events
             el = ecloss[:, i]  # sites,event
             f.write(' '.join(['%.10g' % (l) for l in el]) + '\n')
