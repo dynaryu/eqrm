@@ -654,11 +654,12 @@ def main(parameter_handle,
          eqrm_flags.save_building_loss is True or
          eqrm_flags.save_contents_loss is True) and
             parallel.lo != parallel.hi):
-        a_file = save_structures(eqrm_flags, all_sites,
-                                 compress=eqrm_flags.compress_output,
-                                 parallel_tag=parallel.file_tag,
-                                 write_title=(parallel.rank == False))
-        row_files_that_parallel_splits.append(a_file)
+        pass
+        #a_file = save_structures(eqrm_flags, all_sites,
+        #                         compress=eqrm_flags.compress_output,
+        #                         parallel_tag=parallel.file_tag,
+        #                         write_title=(parallel.rank == False))
+        #row_files_that_parallel_splits.append(a_file)
 
     if (eqrm_flags.save_total_financial_loss is True and
             parallel.lo != parallel.hi):
@@ -703,19 +704,20 @@ def main(parameter_handle,
         a_file = save_ecloss('_building', eqrm_flags, new_building_loss_qw,
                              all_sites, compress=eqrm_flags.compress_output,
                              parallel_tag=parallel.file_tag)
-        column_files_that_parallel_splits.append(a_file)
-
+        #column_files_that_parallel_splits.append(a_file)
+        """
         if eqrm_flags.run_type == "risk_mmi":
             # Save the building structure values
             # all_sites.cost_breakdown(
             # ci=eqrm_flags.loss_regional_cost_index_multiplier)
             structure_costs = all_sites.cost_breakdown()
             a_file = save_val(eqrm_flags,
-                              structure_costs,
-                              '_building_value',
-                              compress=eqrm_flags.compress_output,
-                              parallel_tag=parallel.file_tag)
+                             structure_costs,
+                             '_building_value',
+                             compress=eqrm_flags.compress_output,
+                             parallel_tag=parallel.file_tag)
             #row_files_that_parallel_splits.append(a_file)
+        """
 
     if eqrm_flags.save_contents_loss is True and parallel.lo != parallel.hi:
         new_contents_loss_qw = collapse_source_gmms(
@@ -763,7 +765,7 @@ def main(parameter_handle,
     # parallel code.  Needed if # of processes is > # of structures
     num_blocks = parallel.calc_num_blocks()
 
-    """	
+    """
     # Now process 0 can stitch some files together.
     if parallel.is_parallel and parallel.rank == 0:
         block_indices = parallel.calc_all_indices(num_sites)
