@@ -1,7 +1,10 @@
 name: eqrm
+channels:
+- IOOS
 dependencies:
 - cycler=0.9.0=py27_0
 - freetype=2.5.5=0
+- geos=3.4.2=0
 - libpng=1.6.17=0
 - matplotlib=1.4.3=np19py27_3
 - mkl=11.3.1=0
